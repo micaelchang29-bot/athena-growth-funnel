@@ -1,0 +1,4 @@
+channel,kyc_approved,kyc_rejected,total_kyc,pct_aprobacion,pct_rechazo
+organico,370,72,442,83.71,16.29
+pagado,254,41,295,86.1,13.9
+referido,95,22,117,81.2,18.8

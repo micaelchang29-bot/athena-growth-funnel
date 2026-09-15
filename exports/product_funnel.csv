@@ -1,0 +1,8 @@
+event_name,usuarios_unicos,pct_sobre_signup,pct_conversion_paso_anterior
+signup,3000,100.0,
+login,2851,95.03,95.03
+view_service,2125,70.83,74.54
+start_application,854,28.47,40.19
+complete_kyc,854,28.47,100.0
+kyc_approved,719,23.97,84.19
+first_transaction,605,20.17,84.14

@@ -1,0 +1,21 @@
+# Dataset real pesado (~78MB) — no se versiona, se regenera con
+# scripts/clean_online_retail.py a partir del .xlsx descargado de UCI
+data/online_retail_ii_clean.csv
+data/online_retail_II.xlsx
+data/online_retail_ii.zip
+
+# Credenciales AWS
+.aws/
+*.pem
+credentials
+config
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Sistema
+.DS_Store
+Thumbs.db
