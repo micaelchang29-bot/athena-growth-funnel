@@ -61,6 +61,17 @@ FROM activation;
 -- -----------------------------------------------------------------------------
 -- 3) % de conversión en cada etapa: adquiridos -> activados -> retenidos
 --    (retenido = compra en los 3 meses siguientes al mes de activación)
+--
+-- NOTA SOBRE LA CTE "retention": la condición usa
+--   date_diff('day', a.first_purchase_day, pd.purchase_day) > 30
+-- en vez de la comparación más obvia pd.purchase_day > a.first_purchase_day.
+-- Esto es deliberado: "retenido" debe significar una compra DESPUÉS de la
+-- ventana de activación de 30 días, no cualquier compra posterior a la
+-- primera compra. Con pd.purchase_day > a.first_purchase_day, la segunda
+-- compra que ya definió la activación (día 1-30) también contaría como
+-- "retención", inflando el % de retención con el mismo evento que ya se
+-- contó como activación. date_diff(...) > 30 excluye explícitamente esa
+-- ventana y solo cuenta actividad genuinamente posterior a la activación.
 -- -----------------------------------------------------------------------------
 WITH purchase_dates AS (
     SELECT DISTINCT customer_id, date_trunc('day', invoice_date) AS purchase_day
@@ -97,7 +108,7 @@ retention AS (
         a.customer_id,
         MAX(CASE
                 WHEN a.activated = 1
-                     AND pd.purchase_day > a.first_purchase_day
+                     AND date_diff('day', a.first_purchase_day, pd.purchase_day) > 30
                      AND pd.purchase_day <= date_add('month', 3, a.first_purchase_day)
                 THEN 1 ELSE 0
             END) AS retained
