@@ -2,11 +2,15 @@
 -- 07_dau_mau.sql
 -- DAU, MAU (ventana móvil de 30 días) y stickiness (DAU/MAU) semanal, sobre
 -- eventos sintéticos de producto.
+--
+-- TABLA USADA: growth_funnel.product_events_parquet (NO raw_product_events).
+-- Se necesita event_timestamp como TIMESTAMP real para poder restar
+-- intervalos de fecha (INTERVAL '30' DAY) y truncar por día/semana;
+-- raw_product_events trae event_timestamp como STRING (OpenCSVSerde), lo
+-- que no permite aritmética de fechas sin castear primero.
 -- =============================================================================
 
--- -----------------------------------------------------------------------------
--- DAU: usuarios únicos con al menos un evento por día
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 1: DAU (usuarios únicos con al menos un evento por día) =====
 CREATE OR REPLACE VIEW growth_funnel.v_dau AS
 SELECT
     date_trunc('day', event_timestamp) AS activity_day,
@@ -14,10 +18,7 @@ SELECT
 FROM growth_funnel.product_events_parquet
 GROUP BY date_trunc('day', event_timestamp);
 
--- -----------------------------------------------------------------------------
--- MAU: usuarios únicos con evento en los últimos 30 días (ventana móvil,
--- una fila por día calendario dentro del rango de datos)
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 2: MAU (ventana móvil de 30 días, una fila por día calendario) =====
 WITH days AS (
     SELECT DISTINCT date_trunc('day', event_timestamp) AS activity_day
     FROM growth_funnel.product_events_parquet
@@ -36,9 +37,7 @@ SELECT activity_day, mau
 FROM mau_per_day
 ORDER BY activity_day;
 
--- -----------------------------------------------------------------------------
--- Stickiness (DAU/MAU) por semana, como serie de tiempo
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 3: stickiness (DAU/MAU) por semana, como serie de tiempo =====
 WITH days AS (
     SELECT DISTINCT date_trunc('day', event_timestamp) AS activity_day
     FROM growth_funnel.product_events_parquet
@@ -72,8 +71,8 @@ daily_stickiness AS (
 )
 SELECT
     activity_week,
-    ROUND(AVG(dau), 1)         AS dau_promedio_semana,
-    ROUND(AVG(mau), 1)         AS mau_promedio_semana,
+    ROUND(AVG(dau), 1)              AS dau_promedio_semana,
+    ROUND(AVG(mau), 1)              AS mau_promedio_semana,
     ROUND(AVG(stickiness) * 100, 2) AS stickiness_pct_promedio
 FROM daily_stickiness
 GROUP BY activity_week

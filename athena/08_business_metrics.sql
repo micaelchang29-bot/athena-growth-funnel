@@ -3,14 +3,30 @@
 -- 8 métricas de negocio y riesgo para una fintech de pagos, calculadas sobre
 -- los eventos sintéticos de producto + costos de adquisición.
 --
--- NOTA: raw_acquisition_costs.acquisition_cost_pen se declaró como STRING en
--- la tabla externa (OpenCSVSerde lee todas las columnas como string), por
--- eso se castea a DOUBLE aquí antes de sumarlo/dividirlo.
+-- TABLAS USADAS:
+--   - growth_funnel.product_events_parquet: para todo lo que requiere
+--     aritmética de fechas (date_trunc, date_format) o sumar/promediar
+--     "amount" y "is_fraud" — ya vienen tipados (TIMESTAMP, DOUBLE, BOOLEAN)
+--     desde el CTAS de 02_ctas_parquet_partitioned.sql.
+--   - growth_funnel.raw_acquisition_costs: NO tiene versión Parquet en este
+--     proyecto (son solo 12 filas — 3 canales x 4-6 meses — el volumen no
+--     justifica una tabla particionada aparte). Sigue siendo 100% STRING
+--     porque viene de OpenCSVSerde, así que "acquisition_cost_pen" se
+--     castea explícitamente a DOUBLE en cada query que la usa (métricas 1 y 7).
+--     Si el dataset creciera a un tamaño real de producción, sí convendría
+--     un CTAS a Parquet como el de las otras dos tablas.
+--
+-- NOTA SOBRE "month" EN raw_acquisition_costs: esta columna es un string
+-- libre con formato 'YYYY-MM' generado en pandas (no es una columna de
+-- partición de Hive), por lo que el JOIN contra
+-- date_format(..., '%Y-%m') funciona directo sin casteos adicionales de
+-- partición. Esto es distinto de las columnas year/month de las tablas
+-- *_parquet, que sí son particiones STRING y deben compararse con
+-- literales entre comillas (ver 04_cohort_retention.sql y
+-- 02_ctas_parquet_partitioned.sql para ese patrón).
 -- =============================================================================
 
--- -----------------------------------------------------------------------------
--- 1) CAC por canal y mes = costo del canal / usuarios nuevos adquiridos
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 1: CAC por canal y mes = costo del canal / usuarios nuevos =====
 WITH new_users AS (
     SELECT
         channel,
@@ -32,9 +48,7 @@ JOIN growth_funnel.raw_acquisition_costs ac
     ON ac.channel = nu.channel AND ac.month = nu.month
 ORDER BY nu.month, nu.channel;
 
--- -----------------------------------------------------------------------------
--- 2) Tasa de aprobación/rechazo de KYC, general y por canal
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 2: tasa de aprobación/rechazo de KYC, general y por canal =====
 SELECT
     channel,
     COUNT(*)                                                              AS total_kyc,
@@ -47,10 +61,8 @@ WHERE event_name = 'complete_kyc'
 GROUP BY GROUPING SETS ((channel), ())
 ORDER BY channel;
 
--- -----------------------------------------------------------------------------
--- 3) TPV (Total Payment Volume) mensual = suma de amount de todas las
---    transacciones (first_transaction + repeat_transaction)
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 3: vista de transacciones mensuales (base para métricas 3-8) =====
+-- Correr esta CREATE VIEW antes que las sentencias 4, 6, 7 y 9, que dependen de ella.
 CREATE OR REPLACE VIEW growth_funnel.v_monthly_transactions AS
 SELECT
     date_format(date_trunc('month', event_timestamp), '%Y-%m') AS month,
@@ -60,18 +72,17 @@ SELECT
 FROM growth_funnel.product_events_parquet
 WHERE event_name IN ('first_transaction', 'repeat_transaction');
 
+-- ===== SENTENCIA 4: TPV mensual (métrica 3) y ticket promedio (métrica 4) =====
 SELECT
     month,
-    ROUND(SUM(amount), 2)                    AS tpv_pen,
-    COUNT(*)                                 AS n_transacciones,
-    ROUND(AVG(amount), 2)                    AS ticket_promedio_pen  -- métrica 4: ticket promedio
+    ROUND(SUM(amount), 2) AS tpv_pen,
+    COUNT(*)              AS n_transacciones,
+    ROUND(AVG(amount), 2) AS ticket_promedio_pen
 FROM growth_funnel.v_monthly_transactions
 GROUP BY month
 ORDER BY month;
 
--- -----------------------------------------------------------------------------
--- 5) ARPU mensual = TPV del mes / usuarios activos del mes
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 5: ARPU mensual (métrica 5) = TPV del mes / usuarios activos del mes =====
 WITH monthly_tpv AS (
     SELECT month, SUM(amount) AS tpv_pen, COUNT(DISTINCT user_id) AS usuarios_activos
     FROM growth_funnel.v_monthly_transactions
@@ -85,13 +96,11 @@ SELECT
 FROM monthly_tpv
 ORDER BY month;
 
--- -----------------------------------------------------------------------------
--- 6) LTV simplificado = ARPU promedio x retención promedio en meses
---    NOTA METODOLÓGICA: esta es una aproximación simplificada, NO un LTV de
---    cohorte madura, porque la ventana de datos sintéticos es de solo 6
---    meses. Un LTV robusto requeriría observar cohortes completas durante
---    12-24+ meses y modelar la curva de decaimiento de retención.
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 6: LTV simplificado (métrica 6) = ARPU promedio x retención promedio en meses =====
+-- NOTA METODOLÓGICA: esta es una aproximación simplificada, NO un LTV de
+-- cohorte madura, porque la ventana de datos sintéticos es de solo 6
+-- meses. Un LTV robusto requeriría observar cohortes completas durante
+-- 12-24+ meses y modelar la curva de decaimiento de retención.
 WITH monthly_tpv AS (
     SELECT month, SUM(amount) AS tpv_pen, COUNT(DISTINCT user_id) AS usuarios_activos
     FROM growth_funnel.v_monthly_transactions
@@ -102,7 +111,7 @@ arpu AS (
     FROM monthly_tpv
 ),
 retention_months AS (
-    -- Meses promedio con al menos una transacción, por usuario activado
+    -- Meses distintos con al menos una transacción, por usuario activado
     SELECT
         user_id,
         COUNT(DISTINCT date_trunc('month', event_timestamp)) AS meses_activos
@@ -122,10 +131,9 @@ SELECT
 FROM arpu a
 CROSS JOIN avg_retention r;
 
--- -----------------------------------------------------------------------------
--- 7) LTV:CAC por canal (usa el mismo LTV simplificado agregado, comparado
---    contra el CAC promedio de cada canal en el periodo)
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 7: LTV:CAC por canal (métrica 7) =====
+-- Usa el mismo LTV simplificado agregado (sentencia 6) comparado contra el
+-- CAC promedio de cada canal en el periodo.
 WITH monthly_tpv AS (
     SELECT month, SUM(amount) AS tpv_pen, COUNT(DISTINCT user_id) AS usuarios_activos
     FROM growth_funnel.v_monthly_transactions
@@ -168,16 +176,17 @@ cac_por_canal AS (
 )
 SELECT
     c.channel,
-    ROUND(c.cac_promedio_pen, 2)                                   AS cac_promedio_pen,
-    ROUND(l.ltv_simplificado_pen, 2)                               AS ltv_simplificado_pen,
+    ROUND(c.cac_promedio_pen, 2)                                     AS cac_promedio_pen,
+    ROUND(l.ltv_simplificado_pen, 2)                                 AS ltv_simplificado_pen,
     ROUND(l.ltv_simplificado_pen / NULLIF(c.cac_promedio_pen, 0), 2) AS ratio_ltv_cac
 FROM cac_por_canal c
 CROSS JOIN ltv l
 ORDER BY ratio_ltv_cac DESC;
 
--- -----------------------------------------------------------------------------
--- 8) Tasa de fraude = transacciones is_fraud / total de transacciones, por mes
--- -----------------------------------------------------------------------------
+-- ===== SENTENCIA 8: tasa de fraude mensual (métrica 8) =====
+-- is_fraud ya es BOOLEAN en product_events_parquet (y por lo tanto en la
+-- vista v_monthly_transactions, que se define sobre esa tabla) — se usa
+-- directo en la condición CASE WHEN is_fraud, sin CAST.
 SELECT
     month,
     COUNT(*)                                                    AS total_transacciones,
