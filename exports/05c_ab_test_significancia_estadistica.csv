@@ -1,0 +1,2 @@
+conversiones_control,n_control,conversiones_test,n_test,tasa_control,tasa_test,diferencia_absoluta,diferencia_relativa_pct,z_score,p_value,significativo_95pct,interpretacion
+188,2500,276,2500,0.0752,0.1104,0.035199999999999995,46.80851063829787,4.289159149877533,1.7935082624376264e-05,True,"La variante 'test' convierte 11.04% vs. 7.52% de 'control' (+3.52 p.p., +46.8% relativo). Con z=4.29 y p=1.79e-05 (< 0.05), la diferencia es estadísticamente significativa al 95% de confianza: se recomienda lanzar la variante 'test'."

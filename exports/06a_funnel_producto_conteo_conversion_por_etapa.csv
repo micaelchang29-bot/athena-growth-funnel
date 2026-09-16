@@ -1,0 +1,8 @@
+"step_order","event_name","usuarios_unicos","pct_sobre_signup","pct_conversion_paso_anterior"
+"1","signup","3000","100.0",
+"2","login","2851","95.03","95.03"
+"3","view_service","2125","70.83","74.54"
+"4","start_application","854","28.47","40.19"
+"5","complete_kyc","854","28.47","100.0"
+"6","kyc_approved","719","23.97","84.19"
+"7","first_transaction","605","20.17","84.14"

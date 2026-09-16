@@ -26,14 +26,32 @@ def two_proportion_z_test(conv_control, n_control, conv_test, n_test):
     z = (p_test - p_control) / se
     p_value = 2 * (1 - stats.norm.cdf(abs(z)))
 
+    significativo = p_value < 0.05
+    interpretacion = (
+        f"La variante 'test' convierte {100*p_test:.2f}% vs. {100*p_control:.2f}% de 'control' "
+        f"(+{100*(p_test-p_control):.2f} p.p., {100*(p_test-p_control)/p_control:+.1f}% relativo). "
+        + (
+            f"Con z={z:.2f} y p={p_value:.2e} (< 0.05), la diferencia es estadísticamente "
+            "significativa al 95% de confianza: se recomienda lanzar la variante 'test'."
+            if significativo else
+            f"Con z={z:.2f} y p={p_value:.2e} (>= 0.05), la diferencia NO es estadísticamente "
+            "significativa al 95% de confianza."
+        )
+    )
+
     return {
+        "conversiones_control": conv_control,
+        "n_control": n_control,
+        "conversiones_test": conv_test,
+        "n_test": n_test,
         "tasa_control": p_control,
         "tasa_test": p_test,
         "diferencia_absoluta": p_test - p_control,
         "diferencia_relativa_pct": 100 * (p_test - p_control) / p_control if p_control > 0 else None,
         "z_score": z,
         "p_value": p_value,
-        "significativo_95pct": p_value < 0.05,
+        "significativo_95pct": significativo,
+        "interpretacion": interpretacion,
     }
 
 
