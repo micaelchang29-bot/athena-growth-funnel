@@ -4,13 +4,17 @@
 -- La significancia estadística (z-test de proporciones) se calcula en
 -- scripts/ab_test_significance.py, ya que Athena SQL no tiene funciones
 -- estadísticas nativas para eso.
+--
+-- NOTA: raw_ab_test.converted se declaró como STRING en la tabla externa
+-- (OpenCSVSerde lee todas las columnas como string), por eso se castea a
+-- INTEGER aquí antes de sumarlo.
 -- =============================================================================
 
 SELECT
     variant,
-    COUNT(*)                                   AS usuarios,
-    SUM(converted)                             AS conversiones,
-    ROUND(100.0 * SUM(converted) / COUNT(*), 2) AS tasa_conversion_pct
+    COUNT(*)                                                  AS usuarios,
+    SUM(CAST(converted AS INTEGER))                           AS conversiones,
+    ROUND(100.0 * SUM(CAST(converted AS INTEGER)) / COUNT(*), 2) AS tasa_conversion_pct
 FROM growth_funnel.raw_ab_test
 GROUP BY variant
 ORDER BY variant;
@@ -20,7 +24,7 @@ ORDER BY variant;
 WITH rates AS (
     SELECT
         variant,
-        SUM(converted) * 1.0 / COUNT(*) AS conversion_rate,
+        SUM(CAST(converted AS INTEGER)) * 1.0 / COUNT(*) AS conversion_rate,
         COUNT(*) AS n
     FROM growth_funnel.raw_ab_test
     GROUP BY variant

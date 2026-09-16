@@ -24,7 +24,7 @@ WITH (
     format = 'PARQUET',
     parquet_compression = 'SNAPPY',
     partitioned_by = ARRAY['year', 'month'],
-    external_location = 's3://YOUR_BUCKET/curated/online_retail_parquet/'
+    external_location = 's3://micael-growth-funnel/curated/online_retail_parquet/'
 ) AS
 SELECT
     invoice_no,
@@ -48,7 +48,7 @@ WITH (
     format = 'PARQUET',
     parquet_compression = 'SNAPPY',
     partitioned_by = ARRAY['year', 'month'],
-    external_location = 's3://YOUR_BUCKET/curated/product_events_parquet/'
+    external_location = 's3://micael-growth-funnel/curated/product_events_parquet/'
 ) AS
 SELECT
     user_id,

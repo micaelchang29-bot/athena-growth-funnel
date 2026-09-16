@@ -3,6 +3,8 @@
 data/online_retail_ii_clean.csv
 data/online_retail_II.xlsx
 data/online_retail_ii.zip
+data/online+retail+ii.zip
+data/*.zip
 
 # Credenciales AWS
 .aws/

@@ -2,6 +2,10 @@
 -- 08_business_metrics.sql
 -- 8 métricas de negocio y riesgo para una fintech de pagos, calculadas sobre
 -- los eventos sintéticos de producto + costos de adquisición.
+--
+-- NOTA: raw_acquisition_costs.acquisition_cost_pen se declaró como STRING en
+-- la tabla externa (OpenCSVSerde lee todas las columnas como string), por
+-- eso se castea a DOUBLE aquí antes de sumarlo/dividirlo.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -21,8 +25,8 @@ SELECT
     nu.channel,
     nu.month,
     nu.nuevos_usuarios,
-    ac.acquisition_cost_pen,
-    ROUND(ac.acquisition_cost_pen / NULLIF(nu.nuevos_usuarios, 0), 2) AS cac_pen
+    CAST(ac.acquisition_cost_pen AS DOUBLE) AS acquisition_cost_pen,
+    ROUND(CAST(ac.acquisition_cost_pen AS DOUBLE) / NULLIF(nu.nuevos_usuarios, 0), 2) AS cac_pen
 FROM new_users nu
 JOIN growth_funnel.raw_acquisition_costs ac
     ON ac.channel = nu.channel AND ac.month = nu.month
@@ -156,7 +160,7 @@ new_users AS (
 cac_por_canal AS (
     SELECT
         nu.channel,
-        SUM(ac.acquisition_cost_pen) / NULLIF(SUM(nu.nuevos_usuarios), 0) AS cac_promedio_pen
+        SUM(CAST(ac.acquisition_cost_pen AS DOUBLE)) / NULLIF(SUM(nu.nuevos_usuarios), 0) AS cac_promedio_pen
     FROM new_users nu
     JOIN growth_funnel.raw_acquisition_costs ac
         ON ac.channel = nu.channel AND ac.month = nu.month

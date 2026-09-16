@@ -42,7 +42,19 @@ def main():
         sys.exit(1)
 
     data_dir = Path(args.data_dir)
-    s3 = boto3.client("s3")
+
+    # El bucket puede vivir en una región distinta a la configurada por
+    # defecto en el CLI/entorno; se detecta automáticamente para evitar
+    # errores de "PermanentRedirect".
+    probe = boto3.client("s3")
+    try:
+        location = probe.get_bucket_location(Bucket=bucket).get("LocationConstraint")
+        bucket_region = location or "us-east-1"
+    except ClientError as e:
+        print(f"Error consultando la región del bucket '{bucket}': {e}", file=sys.stderr)
+        sys.exit(1)
+
+    s3 = boto3.client("s3", region_name=bucket_region)
 
     for filename, s3_key in PREFIX_MAP.items():
         local_path = data_dir / filename
