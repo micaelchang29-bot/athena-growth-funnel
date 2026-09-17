@@ -76,6 +76,7 @@ athena-growth-funnel/
 ├── scripts/                 # Generación de datos, carga a S3, significancia A/B
 ├── athena/                  # SQL de Athena (DDL, CTAS, queries de análisis)
 ├── exports/                 # CSVs de salida reales de Athena, listos para Power BI
+├── dashboard/               # Dashboard de Power BI (growth-funnel-dashboard.pbix)
 └── img/                     # Capturas / diagramas (opcional)
 ```
 
@@ -342,12 +343,31 @@ python scripts/upload_to_s3.py --data-dir data
 python scripts/ab_test_significance.py --input data/ab_test_data.csv --output exports/05c_ab_test_significancia_estadistica.csv
 ```
 
-## Conexión a Power BI
+## Dashboard
 
-**Opción recomendada (simple)**: exportar los resultados de cada query de
-Athena a CSV (botón "Download results" en la consola) y cargarlos como
-archivos en Power BI Desktop. Es el enfoque usado para generar los CSVs de
-`exports/` en este repo.
+El análisis completo se visualiza en **Power BI**, conectado a los CSVs
+reales de `exports/` (el enfoque simple descrito más abajo).
+
+- **Archivo**: [`dashboard/growth-funnel-dashboard.pbix`](dashboard/growth-funnel-dashboard.pbix)
+- **Para abrirlo**: se necesita **Power BI Desktop** (gratuito, solo
+  Windows) — [descarga aquí](https://www.microsoft.com/en-us/power-platform/products/power-bi/desktop).
+
+El dashboard tiene 4 páginas:
+
+| Página | Qué muestra |
+|---|---|
+| **Funnel & Cohortes** | Funnel transaccional de adquisición → activación → retención (Online Retail II) y la matriz de cohortes mensuales, incluyendo la alerta de caída de retención. |
+| **Producto & Engagement** | Funnel de activación de producto (signup → ... → first_transaction), tiempos entre etapas, y la serie DAU/MAU con stickiness semanal. |
+| **A/B Test** | Tasas de conversión por variante, diferencia absoluta/relativa, y el resultado del z-test de significancia estadística. |
+| **Negocio & Riesgo** | Las 8 métricas de negocio: CAC por canal, aprobación de KYC, TPV, ARPU, LTV simplificado, ratio LTV:CAC por canal, y tasa de fraude mensual. |
+
+### Cómo conectar Power BI a los datos
+
+**Opción recomendada (simple, la usada en este proyecto)**: exportar los
+resultados de cada query de Athena a CSV (botón "Download results" en la
+consola) y cargarlos como archivos en Power BI Desktop. Es el enfoque usado
+para generar los CSVs de `exports/` y alimentar
+`dashboard/growth-funnel-dashboard.pbix`.
 
 **Opción avanzada (conexión en vivo)**: Power BI puede conectarse
 directamente a Athena mediante el **Simba Athena ODBC Driver**:
