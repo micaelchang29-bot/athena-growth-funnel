@@ -320,6 +320,9 @@ encabezado de cada archivo `.sql` que las usa.
 ## Cómo reproducir el pipeline completo
 
 ```bash
+# 0) Instalar dependencias
+pip install -r requirements.txt
+
 # 1) Limpiar Online Retail II (requiere el .xlsx descargado de UCI)
 python scripts/clean_online_retail.py --input online_retail_II.xlsx --output data/online_retail_ii_clean.csv
 

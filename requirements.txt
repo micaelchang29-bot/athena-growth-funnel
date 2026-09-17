@@ -1,0 +1,6 @@
+pandas
+numpy
+scipy
+boto3
+botocore
+openpyxl
