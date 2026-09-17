@@ -361,6 +361,26 @@ El dashboard tiene 4 páginas:
 | **A/B Test** | Tasas de conversión por variante, diferencia absoluta/relativa, y el resultado del z-test de significancia estadística. |
 | **Negocio & Riesgo** | Las 8 métricas de negocio: CAC por canal, aprobación de KYC, TPV, ARPU, LTV simplificado, ratio LTV:CAC por canal, y tasa de fraude mensual. |
 
+### Funnel & Cohortes
+Funnel transaccional de adquisición → activación → retención (Online Retail II) y la matriz de cohortes mensuales, incluyendo la alerta de caída de retención.
+
+![Funnel transaccional y matriz de cohortes de retención](img/dashboard-01-funnel-cohortes.png)
+
+### Producto & Engagement
+Funnel de activación de producto (signup → ... → first_transaction), tiempos entre etapas, y la serie DAU/MAU con stickiness semanal.
+
+![Funnel de producto, DAU/MAU y stickiness semanal](img/dashboard-02-producto-engagement.png)
+
+### A/B Test
+Tasas de conversión por variante, diferencia absoluta/relativa, y el resultado del z-test de significancia estadística.
+
+![Resultado del test A/B y significancia estadística](img/dashboard-03-ab-test.png)
+
+### Negocio & Riesgo
+Las 8 métricas de negocio: CAC por canal, aprobación de KYC, TPV, ARPU, LTV simplificado, ratio LTV:CAC por canal, y tasa de fraude mensual.
+
+![Métricas de negocio: CAC, KYC, TPV, ARPU, LTV y fraude](img/dashboard-04-negocio-riesgo.png)
+
 ### Cómo conectar Power BI a los datos
 
 **Opción recomendada (simple, la usada en este proyecto)**: exportar los
